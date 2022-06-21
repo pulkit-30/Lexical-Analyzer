@@ -13,8 +13,6 @@
 #include <vector>
 #include <fstream>
 #include <string>
-#include <stdlib.h>
-#include <ctype.h>
 
 using namespace std;
 // trie header file
