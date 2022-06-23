@@ -1,24 +1,46 @@
+/**
+ * @brief Node Structure
+ * data: character
+ * type: 1 = operator, 2 = symbol, 3 = keywords
+ * Next: all children Nodes
+ */
 struct Node
 {
     char data;
+    int type;
     int we;
-    struct Node *Next[256];
+    struct Node *Next[128];
 };
 
-/**
- * @brief Get the Node object
- *
- * @return struct Node*
- */
 struct Node *GetNode()
 {
-    struct Node *newNode = new (struct Node);
+    struct Node *newNode = new (Node);
     newNode->we = 0;
-    for (int i = 0; i < 256; i++)
-    {
+
+    for (int i = 0; i < 128; i++)
         newNode->Next[i] = NULL;
-    }
+
     return newNode;
+}
+
+/**
+ * @brief check for a numerical value
+ *
+ * @param str
+ * @return true if numerical value
+ * @return false
+ */
+
+bool isNumber(char str)
+{
+    if (str == '0' || str == '1' || str == '2' ||
+        str == '3' || str == '4' || str == '5' ||
+        str == '6' || str == '7' || str == '8' ||
+        str == '9')
+    {
+        return 1;
+    }
+    return 0;
 }
 
 /**
@@ -29,7 +51,7 @@ struct Node *GetNode()
  * @param data
  * @param we
  */
-void Insert(struct Node **Start, struct Node **P, char data, int we)
+void Insert(struct Node **Start, struct Node **P, char data, int we, int type)
 {
     struct Node *newNode = GetNode();
     // we know where we want to insert
@@ -41,14 +63,14 @@ void Insert(struct Node **Start, struct Node **P, char data, int we)
             newNode->data = data;
             (*P)->Next[data] = newNode;
             newNode->we = we;
+            newNode->type = type;
         }
         else
         {
             newNode = (*P)->Next[data];
+            newNode->type = type;
             if (we)
-            {
                 newNode->we = 1;
-            }
         }
     }
     else
@@ -56,18 +78,20 @@ void Insert(struct Node **Start, struct Node **P, char data, int we)
         // we don't know where we want to insert, so start from root Node
         newNode->data = data;
         newNode->we = we;
+        newNode->type = type;
         (*Start)->Next[data] = newNode;
     }
     (*P) = newNode;
 }
 
 /**
- * @brief This function perform the Insertion process to insert each character in Trie with the help of Insert function
+ * @brief This function perform the Insertion process to insert each character in
+ *        Trie with the help of Insert function
  *
  * @param Start
  * @param word
  */
-void PerformInsertion(struct Node **Start, string word)
+void PerformInsertion(struct Node **Start, string word, int type)
 {
     int len = word.length();
     struct Node *P = NULL;
@@ -75,81 +99,129 @@ void PerformInsertion(struct Node **Start, string word)
     if ((*Start)->Next[word[i]])
     {
         P = (*Start)->Next[word[i]];
-        i++;
+        if (++i == len - 1)
+            (*Start)->Next[word[i]]->we = 1;
     }
     while (i < len)
     {
-        Insert(Start, &P, word[i], (i == (len - 1)));
+        Insert(Start, &P, word[i], (i == (len - 1)), type);
         i++;
     }
 }
 
 /**
- * @brief This function counts the unique words present in the Trie
+ * @brief Create a Lexical Trie object
  *
- * @param Start : root pointer of Trie
- * @param count : count pointer ton count the number of unique words
- * @param total : total number of expected symbols, default 256
+ * @return struct Node*
  */
-
-void countUniqueWord(struct Node *Start, int *count, int total = 256)
+struct Node *CreateLexicalTrie()
 {
-    // for all the 26 letters
-    for (int i = 0; i < total; i++)
+    string files[3] = {
+        "operators.txt",
+        "symbols.txt",
+        "keywords.txt",
+    };
+    // create Root node
+    struct Node *Root = GetNode();
+
+    // file instance
+    fstream file;
+    string fileName, word;
+    int i = 0;
+    while (i < 4)
     {
-        // word has next letter
-        if (Start->Next[i])
+        fileName = "./utils/" + files[i];
+        file.open(fileName.c_str(), ios::in);
+        while (file >> word)
         {
-            if (Start->Next[i]->we == 1)
-            {
-                (*count)++;
-            }
-            countUniqueWord(Start->Next[i], count, total);
+            PerformInsertion(&Root, word, (i + 1));
         }
+        file.close();
+        i++;
     }
+    return Root;
+}
+
+/**
+ * @brief To break word: separate symbols and characters
+ *
+ * @param word
+ * @return vector<string>
+ */
+vector<string> breakWord(string word)
+{
+    vector<string> brokenWord;
+    int len = word.length();
+    int i = 0;
+    string str = "";
+    while (i < len)
+    {
+        if (word[i] != ' ')
+        {
+            if ((word[i] >= 'a' && word[i] <= 'z') || (word[i] >= 'A' && word[i] <= 'Z') || word[i] == '_' || isNumber(word[i]))
+            {
+                str += word[i];
+            }
+            else
+            {
+                string s(1, word[i]);
+                if (str != "")
+                    brokenWord.push_back(str);
+                brokenWord.push_back(s);
+                str = "";
+                s = "";
+            }
+        }
+        i++;
+    }
+    if (str != "")
+        brokenWord.push_back(str);
+    return brokenWord;
 }
 
 /**
  * @brief
  *
- * @param word will return a string having no punctuation marks
- * @return string
- */
-string clean(string word)
-{
-    string s = "";
-    int i = 0;
-    while (i < word.length())
-    {
-        if ((word[i] >= 'a' && word[i] <= 'z') || (word[i] >= '0' && word[i] <= '9'))
-        {
-            s += word[i];
-        }
-        i++;
-    }
-    return s;
-}
-/**
- * @brief To convert a upper case letter to lower case
- *
  * @param word
- * @return string
+ * @return true
+ * @return false
  */
-string convertToLowerCase(string word)
+bool validIdentifier(string word)
 {
-    string s = "";
-    int i = 0;
-    while (i < word.length())
+    int len = word.length(), flag = 0;
+    if (len == 1)
+        return true;
+    if (isNumber(word[0]) || !((word[0] >= 'a' && word[0] <= 'z') || (word[0] >= 'A' && word[0] <= 'Z') || word[0] == '_'))
+        return false;
+    for (int i = 1; i < len; i++)
     {
-        s += (char)tolower(word[i]);
-        i++;
+        if ((word[i] >= 'a' && word[i] <= 'z') || (word[i] >= 'A' && word[i] <= 'Z') || word[i] == '_' || isNumber(word[i]))
+            continue;
+        else
+        {
+            flag = 1;
+            break;
+        }
     }
-    return s;
+
+    if (flag)
+        return false;
+    else
+        return true;
 }
 
-int search(struct Node **Start, string word)
+/**
+ * @brief Search a word in the given Trie
+ *
+ * @param Start
+ * @param word
+ * @return int --> searchResult[0/1]
+ */
+int search(struct Node *Root, string word)
 {
-    struct Node *P = *Start;
+    if (!validIdentifier(word))
+        return -1;
+    struct Node *P = Root;
     int flag = 0;
     int i = 0;
     while (i < word.length())
@@ -165,166 +237,9 @@ int search(struct Node **Start, string word)
         }
         i++;
     }
-    if (flag)
-        return 0;
-    else
-    {
-        if (P->we == 1)
-        {
-
-            return 1;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-}
-
-int search(struct Node **Start, char word)
-{
-    struct Node *P = *Start;
-    int flag = 0;
-    int i = 0;
-    if (P->Next[word])
-    {
-        return 1;
-    }
-    return 0;
-}
-
-/**
- * @brief To construct trie for valid keywords
- *
- * @return struct Node*
- */
-
-struct Node *constructTrieForKeywords()
-{
-    struct Node *Keyword = GetNode();
-    fstream file;
-    string fileName = "./keywords.txt", word;
-    file.open(fileName.c_str(), ios::in);
-
-    /**
-     * @brief Read each word from file and perform Insertion in Trie
-     *
-     */
-    int count = 0;
-    while (file >> word)
-    {
-        count++;
-        // to convert upper case letter to lower case
-        word = convertToLowerCase(word);
-        // to clean word form punctuation marks
-        word = clean(word);
-        // pre-check for any whitespace
-        if (word != " ")
-            PerformInsertion(&Keyword, word);
-    }
-    file.close();
-    return Keyword;
-}
-
-/**
- * @brief To construct trie for valid symbols
- *
- * @return struct Node*
- */
-struct Node *constructTrieForSymbols()
-{
-    struct Node *Keyword = GetNode();
-    fstream file;
-    string fileName = "./symbols.txt", word;
-    file.open(fileName.c_str(), ios::in);
-
-    /**
-     * @brief Read each word from file and perform Insertion in Trie
-     *
-     */
-    int count = 0;
-    while (file >> word)
-    {
-        if (word != " ")
-            PerformInsertion(&Keyword, word);
-    }
-    file.close();
-    return Keyword;
-}
-
-/**
- * @brief to construct trie  for valid Operators
- *
- * @return struct Node*
- */
-struct Node *constructTrieForOperator()
-{
-    struct Node *Keyword = GetNode();
-    fstream file;
-    string fileName = "./operators.txt", word;
-    file.open(fileName.c_str(), ios::in);
-
-    /**
-     * @brief Read each word from file and perform Insertion in Trie
-     *
-     */
-    int count = 0;
-    while (file >> word)
-    {
-        if (word != " ")
-            PerformInsertion(&Keyword, word);
-    }
-    file.close();
-    return Keyword;
-}
-
-bool isNumber(char str)
-{
-    if (str == '0' || str == '1' || str == '2' ||
-        str == '3' || str == '4' || str == '5' ||
-        str == '6' || str == '7' || str == '8' ||
-        str == '9')
-    {
-        return 1;
-    }
-    return 0;
-}
-
-bool validIdentifier(string str, struct Node *Symbol, struct Node *Operator, struct Node *Keyword) // check if the given identifier is valid or not
-{
-    if (isNumber(str[0]) || search(&Symbol, str[0]) == 1 || search(&Operator, str[0]) == 1)
-    {
-        return false;
-    } // if first character of string is a digit or a special character, identifier is not valid
-    int i, len = str.length();
-    if (len == 1)
-    {
-        return true;
-    } // if length is one, validation is already completed, hence return true
-    else
-    {
-        for (i = 1; i < len; i++) // identifier cannot contain special characters
-        {
-            if (search(&Symbol, str[i]) == 1 || search(&Operator, str[i]) == 1)
-            {
-                return false;
-            }
-        }
-        if (search(&Keyword, str) == 1)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-string trim(string str)
-{
-    string s = "";
-    for (int i = 0; i < str.length(); i++)
-    {
-        if (int(str[i]) != 32)
-            s += str[i];
-    }
-    return s;
+    if (!flag && P->we == 1)
+        return P->type;
+    if (word.length() == 1 && isNumber(word[0]))
+        return 4;
+    return 5;
 }
