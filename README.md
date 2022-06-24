@@ -1,3 +1,3 @@
 # Lexical-Analyzer
 
-<img width="1284" alt="Screenshot 2022-06-22 at 12 11 09 AM" src="https://user-images.githubusercontent.com/76155456/174874288-cb4c5b71-966e-4232-ab07-928c9d0919bc.png">
+<img width="1255" alt="Screenshot 2022-06-24 at 11 21 32 AM" src="https://user-images.githubusercontent.com/76155456/175471251-1bbd2141-3189-447f-afd8-d28ae4c5e3ed.png">
