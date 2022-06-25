@@ -243,3 +243,33 @@ int search(struct Node *Root, string word)
         return 4;
     return 5;
 }
+
+/**
+ * @brief map a word in the given Trie
+ *
+ * @param Start
+ * @param word
+ * @return int --> searchResult[0/1]
+ */
+int map(struct Node *Root, string word)
+{
+    struct Node *P = Root;
+    int flag = 0;
+    int i = 0;
+    while (i < word.length())
+    {
+        if (P->Next[word[i]])
+        {
+            P = P->Next[word[i]];
+        }
+        else
+        {
+            flag = 1;
+            break;
+        }
+        i++;
+    }
+    if (!flag && P->we == 1)
+        return 1;
+    return 0;
+}
